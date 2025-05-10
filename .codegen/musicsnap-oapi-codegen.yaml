@@ -1,0 +1,12 @@
+# musicsnap-oapi-codegen.yaml for musicsnap api + server
+
+output: services/musicsnap/internal/handler/http/musicsnap/oapi/musicsnap.gen.go
+package: oapi
+generate:
+  - types
+  - gin-server
+  - models
+#  - embedded-spec
+
+# To RUN from root:
+# oapi-codegen --config .codegen/musicsnap-oapi-codegen.yaml oapi/musicsnap.yaml

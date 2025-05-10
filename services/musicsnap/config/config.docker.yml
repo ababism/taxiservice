@@ -1,0 +1,73 @@
+apiVersion: "1.0.0"
+
+app:
+  name: "musicsnap"
+  env: "dev"
+#    env: "prod"
+  version: "1.0"
+
+http:
+  host: "0.0.0.0"
+  port: 8080
+  read_timeout: "15s"
+  write_timeout: "15s"
+
+graceful_shutdown:
+  delay: "3s"
+  wait_timeout: "15s"
+  callback_timeout: "5s"
+
+logger:
+  env: "dev" # "prod"
+  #  level: "debug"
+  level: "info"
+  outputs:
+    - "stdout"
+  error_outputs:
+    - "stderr"
+  encoding: "json"
+  sentry_level: "error"
+  sentry_dsn: ""
+
+cache_refresher:
+  iteration_interval: "10s"
+
+postpone_deleter:
+  iteration_interval: "10s"
+
+cache:
+  expiration: "900s"
+  initial_size: 10000
+
+tracer:
+  enable: true
+  exp_target: "host.docker.internal:4317"
+  stdout: false
+  trace_file: /.log/traces.json
+
+postgres:
+  host: "musicsnap_db"
+  port: "5432"
+
+
+metrics:
+  enable: false
+  dsn: "<sentry_dsn_for_service>"
+
+
+kafka_reader:
+  brokers:
+    - "kafka:9092"
+  topic: "outbound"
+  id_group: "musicsnap-service"
+  min_bytes: 32
+  max_bytes: 2048
+
+kafka_writer:
+  broker: "kafka:9092"
+  topic: "inbound"
+
+jwtservice:
+  ttl_hours: 720
+  #  данные заполняются в env файле
+  signingkey: "stub_public_key"

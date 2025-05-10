@@ -1,0 +1,2469 @@
+openapi: 3.0.0
+info:
+  title: MusicSnap API
+  description: API спецификация для платформы MusicSnap. Позволяет управлять пользователями, рецензиями, плейлистами, событиями и другими сущностями.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Локальный сервер разработки
+
+
+paths:
+  /auth/register:
+    post:
+      summary: Register a new user
+      description: Creates a new user account and returns a JWT token
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                user:
+                  $ref: '#/components/schemas/User'
+                password:
+                  type: string
+                  format: password
+
+      responses:
+        '201':
+          description: User successfully registered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+                  jwt:
+                    type: string
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: User already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/login:
+    post:
+      summary: Login user
+      description: Authenticates a user and returns a JWT token
+      tags:
+        - Authentication
+      parameters:
+        - in: header
+          name: actor
+          schema:
+            $ref: '#/components/schemas/Actor'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+      responses:
+        '200':
+          description: User successfully logged in
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+                  jwt:
+                    type: string
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/logout:
+    post:
+      summary: Logout user
+      description: Invalidates the current JWT token
+      tags:
+        - Authentication
+      parameters:
+        - in: header
+          name: actor
+          schema:
+            $ref: '#/components/schemas/Actor'
+      security:
+        - actorAuth: [ ]
+      responses:
+        '200':
+          description: User successfully logged out
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users:
+    post:
+      summary: Create a new user (admin only)
+      description: Creates a new user account (admin functionality)
+      tags:
+        - Users
+      parameters:
+        - in: header
+          name: actor
+          schema:
+            $ref: '#/components/schemas/Actor'
+      security:
+        - actorAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              #              $ref: '#/components/schemas/User'
+              properties:
+                password:
+                  type: string
+                user:
+                  $ref: '#/components/schemas/User'
+
+
+
+      responses:
+        '201':
+          description: User successfully created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/{user_id}:
+    parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      - in: header
+        name: actor
+        schema:
+          $ref: '#/components/schemas/Actor'
+    get:
+      summary: Get user by ID
+      description: Retrieves user information by ID
+      tags:
+        - Users
+      security:
+        - actorAuth: [ ]
+      responses:
+        '200':
+          description: User information retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      summary: Update user
+      description: Updates user information
+      tags:
+        - Users
+      security:
+        - actorAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '200':
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/{user_id}/profile:
+    parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      - in: header
+        name: actor
+        schema:
+          $ref: '#/components/schemas/Actor'
+    get:
+      summary: Get user profile
+      description: Retrieves user profile information
+      tags:
+        - Users
+      security:
+        - actorAuth: [ ]
+      responses:
+        '200':
+          description: Profile information retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Profile not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      summary: Update user profile
+      description: Updates user profile information
+      tags:
+        - Users
+      security:
+        - actorAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Profile'
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Profile not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/profiles:
+    get:
+      summary: Search user profiles
+      description: Search user profiles by nickname with pagination
+      tags:
+        - Users
+      security:
+        - actorAuth: [ ]
+      parameters:
+        - in: header
+          name: actor
+          schema:
+            $ref: '#/components/schemas/Actor'
+        - name: nickname_query
+          in: query
+          required: false
+          schema:
+            type: string
+            description: Search query for nickname
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+            description: Number of items per page
+        - name: last_uuid
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/UUID'
+      #            description: UUID of the last item in the previous page
+      responses:
+        '200':
+          description: Profiles retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  profiles:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Profile'
+                  pagination:
+                    $ref: '#/components/schemas/UUIDPagination'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /subscriptions:
+    post:
+      summary: Create a new subscription
+      description: Creates a new subscription to another user
+      tags:
+        - Subscriptions
+      parameters:
+        - in: header
+          name: actor
+          schema:
+            $ref: '#/components/schemas/Actor'
+      security:
+        - actorAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Subscription'
+      responses:
+        '201':
+          description: Subscription created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Subscription already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /subscriptions/{followed_id}:
+    parameters:
+      - name: followed_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      - in: header
+        name: actor
+        schema:
+          $ref: '#/components/schemas/Actor'
+    get:
+      summary: Get subscription
+      description: Retrieves subscription information
+      tags:
+        - Subscriptions
+      security:
+        - actorAuth: [ ]
+      responses:
+        '200':
+          description: Subscription retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Subscription not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      summary: Update subscription
+      description: Updates subscription information
+      tags:
+        - Subscriptions
+      security:
+        - actorAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                notification_flag:
+                  type: boolean
+      responses:
+        '200':
+          description: Subscription updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Subscription not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      summary: Delete subscription
+      description: Deletes a subscription
+      tags:
+        - Subscriptions
+      security:
+        - actorAuth: [ ]
+      responses:
+        '204':
+          description: Subscription deleted successfully
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Subscription not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/{user_id}/subscriptions:
+    parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      - in: header
+        name: actor
+        schema:
+          $ref: '#/components/schemas/Actor'
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+          description: Number of items per page
+      - name: last_id
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 0
+          description: Lower bound for pagination
+
+    get:
+      summary: Get user subscriptions
+      description: Retrieves all subscriptions of a user
+      tags:
+        - Subscriptions
+      security:
+        - actorAuth: [ ]
+      responses:
+        '200':
+          description: Subscriptions retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pagination:
+                    $ref: '#/components/schemas/IDPagination'
+                  subscriptions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Subscription'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/{user_id}/subscribers:
+    parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      - in: header
+        name: actor
+        schema:
+          $ref: '#/components/schemas/Actor'
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+          description: Number of items per page
+      - name: last_id
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 0
+          description: Lower bound for pagination
+    get:
+      summary: Get user subscribers
+      description: Retrieves all subscribers of a user
+      tags:
+        - Subscriptions
+      security:
+        - actorAuth: [ ]
+      responses:
+        '200':
+          description: Subscribers retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pagination:
+                    $ref: '#/components/schemas/IDPagination'
+                  subscribers:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Subscription'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/{user_id}/block:
+    parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      - in: header
+        name: actor
+        schema:
+          $ref: '#/components/schemas/Actor'
+    post:
+      summary: Block user
+      description: Blocks a user from interacting with the current user
+      tags:
+        - Subscriptions
+      security:
+        - actorAuth: [ ]
+      responses:
+        '204':
+          description: User blocked successfully
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /reviews:
+    post:
+      summary: Create a new review
+      description: Creates a new music review
+      tags:
+        - Reviews
+      parameters:
+        - in: header
+          name: actor
+          schema:
+            $ref: '#/components/schemas/Actor'
+      security:
+        - actorAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Review'
+      responses:
+        '201':
+          description: Review created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /reviews/{review_id}:
+    parameters:
+      - name: review_id
+        in: path
+        required: true
+        schema:
+          type: integer
+      - in: header
+        name: actor
+        schema:
+          $ref: '#/components/schemas/Actor'
+    get:
+      summary: Get review
+      description: Retrieves review information
+      tags:
+        - Reviews
+      security:
+        - actorAuth: [ ]
+      responses:
+        '200':
+          description: Review retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Review not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      summary: Update review
+      description: Updates review information
+      tags:
+        - Reviews
+      security:
+        - actorAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Review'
+      responses:
+        '200':
+          description: Review updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Review not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      summary: Delete review
+      description: Deletes a review
+      tags:
+        - Reviews
+      security:
+        - actorAuth: [ ]
+      responses:
+        '204':
+          description: Review deleted successfully
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Review not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /reviews/subscriptions:
+    get:
+      summary: Get reviews from subscriptions
+      description: Retrieves reviews from subscribed users with pagination
+      tags:
+        - Reviews
+      security:
+        - actorAuth: [ ]
+      parameters:
+        - in: header
+          name: actor
+          schema:
+            $ref: '#/components/schemas/Actor'
+        - name: piece_id
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: rating
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 10
+        - name: moderated
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: true
+            description: Filter by moderation status
+        - name: published
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: true
+            description: Filter by publication status
+        - name: include_profiles
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+            description: Include user profiles in the response
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: last_id
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+      responses:
+        '200':
+          description: Reviews retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reviews:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Review'
+                  pagination:
+                    $ref: '#/components/schemas/IDPagination'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /reviews/list:
+    get:
+      summary: List reviews
+      description: Retrieves reviews with filtering and pagination
+      tags:
+        - Reviews
+      security:
+        - actorAuth: [ ]
+      parameters:
+        - in: header
+          name: actor
+          schema:
+            $ref: '#/components/schemas/Actor'
+        - name: user_id
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/UUID'
+        - name: piece_id
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: rating
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 10
+        - name: moderated
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: true
+            description: Filter by moderation status
+        - name: published
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: true
+            description: Filter by publication status
+        - name: include_profiles
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+            description: Include user profiles in the response
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: last_id
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+      responses:
+        '200':
+          description: Reviews retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reviews:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Review'
+                  pagination:
+                    $ref: '#/components/schemas/IDPagination'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /reviews/{review_id}/reactions:
+    parameters:
+      - name: review_id
+        in: path
+        required: true
+        schema:
+          type: integer
+      - in: header
+        name: actor
+        schema:
+          $ref: '#/components/schemas/Actor'
+    post:
+      summary: Add reaction to review
+      description: Adds a like or dislike reaction to a review
+      tags:
+        - Reactions
+      security:
+        - actorAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Reaction'
+      responses:
+        '201':
+          description: Reaction added successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reaction'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Review not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Reaction already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    get:
+      summary: Get reaction count
+      description: Gets the number of likes and dislikes for a review
+      tags:
+        - Reactions
+      security:
+        - actorAuth: [ ]
+      responses:
+        '200':
+          description: Reaction count retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReactionCount'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Review not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /reviews/{review_id}/reactions/me:
+    parameters:
+      - name: review_id
+        in: path
+        required: true
+        schema:
+          type: integer
+      - in: header
+        name: actor
+        schema:
+          $ref: '#/components/schemas/Actor'
+    get:
+      summary: Get user's reaction
+      description: Gets the current user's reaction to a review
+      tags:
+        - Reactions
+      security:
+        - actorAuth: [ ]
+      responses:
+        '200':
+          description: User's reaction retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reaction'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Review or reaction not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /reactions/{reaction_id}:
+    parameters:
+      - name: reaction_id
+        in: path
+        required: true
+        schema:
+          type: integer
+      - in: header
+        name: actor
+        schema:
+          $ref: '#/components/schemas/Actor'
+    put:
+      summary: Change reaction to review
+      description: Adds a like or dislike reaction to a review
+      tags:
+        - Reactions
+      security:
+        - actorAuth: [ ]
+      parameters:
+        - name: type
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Type of reaction to add ("like" or "dislike")
+
+      responses:
+        '201':
+          description: Reaction updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reaction'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Review not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Reaction already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      summary: Remove reaction
+      description: Removes a reaction from a review
+      tags:
+        - Reactions
+      security:
+        - actorAuth: [ ]
+      responses:
+        '204':
+          description: Reaction removed successfully
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Reaction not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /photos:
+    post:
+      summary: Upload photo
+      description: Uploads a new photo
+      tags:
+        - Photos
+      parameters:
+        - in: header
+          name: actor
+          schema:
+            $ref: '#/components/schemas/Actor'
+      security:
+        - actorAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Photo uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Photo'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /photos/{photo_id}:
+    parameters:
+      - name: photo_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      - in: header
+        name: actor
+        schema:
+          $ref: '#/components/schemas/Actor'
+    get:
+      summary: Get photo
+      description: Retrieves photo data
+      tags:
+        - Photos
+      security:
+        - actorAuth: [ ]
+      responses:
+        '200':
+          description: Photo retrieved successfully
+          content:
+            image/*:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Photo not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      summary: Delete photo
+      description: Deletes a photo
+      tags:
+        - Photos
+      security:
+        - actorAuth: [ ]
+      responses:
+        '204':
+          description: Photo deleted successfully
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Photo not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/{user_id}/stats:
+    parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      - in: header
+        name: actor
+        schema:
+          $ref: '#/components/schemas/Actor'
+    get:
+      summary: Get user profile statistics
+      description: Retrieves statistics for a user profile
+      tags:
+        - Statistics
+      security:
+        - actorAuth: [ ]
+      responses:
+        '200':
+          description: Profile statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileStats'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /tracks/{track_id}/stats:
+    parameters:
+      - name: track_id
+        in: path
+        required: true
+        schema:
+          type: string
+      - in: header
+        name: actor
+        schema:
+          $ref: '#/components/schemas/Actor'
+    get:
+      summary: Get track statistics
+      description: Retrieves statistics for a music track
+      tags:
+        - Statistics
+      security:
+        - actorAuth: [ ]
+      responses:
+        '200':
+          description: Track statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrackStats'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Track not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /events:
+    post:
+      summary: Create a new event
+      description: Creates a new music event
+      tags:
+        - Events
+      parameters:
+        - in: header
+          name: actor
+          schema:
+            $ref: '#/components/schemas/Actor'
+      security:
+        - actorAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Event'
+      responses:
+        '201':
+          description: Event created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    get:
+      summary: List events
+      description: Retrieves events with filtering
+      tags:
+        - Events
+      security:
+        - actorAuth: [ ]
+      parameters:
+        - in: header
+          name: actor
+          schema:
+            $ref: '#/components/schemas/Actor'
+        - name: name_query
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: date_left_bound
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: date_right_bound
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: sort_by_created_at
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - name: sort_by_amount
+          in: query
+          required: false
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Events retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Event'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /events/{event_id}:
+    parameters:
+      - name: event_id
+        in: path
+        required: true
+        schema:
+          type: integer
+      - in: header
+        name: actor
+        schema:
+          $ref: '#/components/schemas/Actor'
+    get:
+      summary: Get event
+      description: Retrieves event information
+      tags:
+        - Events
+      security:
+        - actorAuth: [ ]
+      responses:
+        '200':
+          description: Event retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      summary: Update event
+      description: Updates event information
+      tags:
+        - Events
+      security:
+        - actorAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Event'
+      responses:
+        '200':
+          description: Event updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /events/{event_id}/participate:
+    parameters:
+      - name: event_id
+        in: path
+        required: true
+        schema:
+          type: integer
+      - in: header
+        name: actor
+        schema:
+          $ref: '#/components/schemas/Actor'
+    post:
+      summary: Participate in event
+      description: Adds the current user as a participant to an event
+      tags:
+        - Events
+      security:
+        - actorAuth: [ ]
+      responses:
+        '200':
+          description: Successfully participated in event
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Already participating
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /notes:
+    post:
+      summary: Create note
+      description: Creates a new note
+      tags:
+        - Notes
+      parameters:
+        - in: header
+          name: actor
+          schema:
+            $ref: '#/components/schemas/Actor'
+      security:
+        - actorAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Note'
+      responses:
+        '201':
+          description: Note created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Note'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /notes/{note_id}:
+    parameters:
+      - name: note_id
+        in: path
+        required: true
+        schema:
+          type: integer
+      - in: header
+        name: actor
+        schema:
+          $ref: '#/components/schemas/Actor'
+    get:
+      summary: Get note
+      description: Retrieves note information
+      tags:
+        - Notes
+      security:
+        - actorAuth: [ ]
+      responses:
+        '200':
+          description: Note retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Note'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Note not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      summary: Update note
+      description: Updates note information
+      tags:
+        - Notes
+      security:
+        - actorAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Note'
+      responses:
+        '200':
+          description: Note updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Note'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Note not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      summary: Delete note
+      description: Deletes a note
+      tags:
+        - Notes
+      security:
+        - actorAuth: [ ]
+      responses:
+        '204':
+          description: Note deleted successfully
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Note not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /playlists/{playlist_id}/notes:
+    parameters:
+      - name: playlist_id
+        in: path
+        required: true
+        schema:
+          type: integer
+      - in: header
+        name: actor
+        schema:
+          $ref: '#/components/schemas/Actor'
+    get:
+      summary: Get playlist notes
+      description: Retrieves all notes for a playlist
+      tags:
+        - Notes
+      security:
+        - actorAuth: [ ]
+      responses:
+        '200':
+          description: Notes retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Note'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Playlist not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /reviews/{review_id}/notes:
+    parameters:
+      - name: review_id
+        in: path
+        required: true
+        schema:
+          type: integer
+      - in: header
+        name: actor
+        schema:
+          $ref: '#/components/schemas/Actor'
+    get:
+      summary: Get review notes
+      description: Retrieves paginated notes for a review
+      tags:
+        - Notes
+      security:
+        - actorAuth: [ ]
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: last_id
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Notes retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Note'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Review not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+#security:
+#  - actorAuth: []
+
+
+components:
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+        code:
+          type: integer
+          description: HTTP status code
+
+    UUID:
+      type: string
+      format: uuid
+      x-go-type: uuid.UUID
+      x-go-type-import:
+        name: uuid
+        path: github.com/google/uuid
+
+    Actor:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        mail:
+          type: string
+          format: email
+        jwt:
+          type: string
+        nickname:
+          type: string
+        roles:
+          type: array
+          items:
+            type: string
+
+    Profile:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        nickname:
+          type: string
+        avatar_url:
+          type: string
+        background_url:
+          type: string
+        bio:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    User:
+      allOf:
+        - $ref: '#/components/schemas/Profile'
+        - type: object
+          properties:
+            email:
+              type: string
+              format: email
+            roles:
+              type: array
+              items:
+                type: string
+            created_at:
+              type: string
+              format: date-time
+            updated_at:
+              type: string
+              format: date-time
+
+    UUIDPagination:
+      type: object
+      properties:
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+        last_uuid:
+          $ref: '#/components/schemas/UUID'
+
+    IDPagination:
+      type: object
+      properties:
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+        last_id:
+          type: integer
+          minimum: 0
+
+    Subscription:
+      type: object
+      properties:
+        id:
+          type: integer
+        subscriber_id:
+          $ref: '#/components/schemas/UUID'
+        subscribed_to_id:
+          $ref: '#/components/schemas/UUID'
+        notification_flag:
+          type: boolean
+        profile_of_interest:
+          $ref: '#/components/schemas/Profile'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Review:
+      type: object
+      properties:
+        id:
+          type: integer
+
+        user_id:
+          $ref: '#/components/schemas/UUID'
+        profile:
+          $ref: '#/components/schemas/Profile'
+        piece_id:
+          type: string
+
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 10
+        content:
+          type: string
+        photo_url:
+          type: string
+
+        moderated:
+          type: boolean
+        published:
+          type: boolean
+
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ReviewFilter:
+      type: object
+      properties:
+        id:
+          type: integer
+        user_id:
+          $ref: '#/components/schemas/UUID'
+        piece_id:
+          type: string
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 10
+
+    Reaction:
+      type: object
+      properties:
+        id:
+          type: integer
+        user_id:
+          $ref: '#/components/schemas/UUID'
+        review_id:
+          type: integer
+        type:
+          type: string
+          enum: [ like, dislike ]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ReactionCount:
+      type: object
+      properties:
+        likes:
+          type: integer
+          minimum: 0
+        dislikes:
+          type: integer
+          minimum: 0
+
+    Photo:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        photo_url:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ProfileStats:
+      type: object
+      properties:
+        total_followers_count:
+          type: integer
+          minimum: 0
+        total_following_count:
+          type: integer
+          minimum: 0
+        total_reviews_count:
+          type: integer
+          minimum: 0
+        total_playlists_count:
+          type: integer
+          minimum: 0
+        total_likes_count:
+          type: integer
+          minimum: 0
+        total_dislikes_count:
+          type: integer
+          minimum: 0
+        total_comments_count:
+          type: integer
+          minimum: 0
+
+    TrackStats:
+      type: object
+      properties:
+        total_likes_count:
+          type: integer
+          minimum: 0
+        total_dislikes_count:
+          type: integer
+          minimum: 0
+        total_reviews_count:
+          type: integer
+          minimum: 0
+        total_comments_count:
+          type: integer
+          minimum: 0
+
+    Event:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        date:
+          type: string
+          format: date-time
+        text:
+          type: string
+        photo_url:
+          type: string
+        photos_urls:
+          type: array
+          items:
+            type: string
+        ticket_link:
+          type: string
+        location_link:
+          type: string
+        location:
+          type: string
+        participants:
+          type: array
+          items:
+            $ref: '#/components/schemas/UUID'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    EventFilter:
+      type: object
+      properties:
+        id:
+          type: integer
+        name_query:
+          type: string
+        date_left_bound:
+          type: string
+          format: date-time
+        date_right_bound:
+          type: string
+          format: date-time
+        sort_by_created_at:
+          type: boolean
+        sort_by_amount:
+          type: boolean
+
+    Note:
+      type: object
+      properties:
+        id:
+          type: integer
+        text:
+          type: string
+        photo_url:
+          type: string
+        source_id:
+          type: integer
+        source_type:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+  securitySchemes:
+    actorAuth:
+      type: apiKey
+      #      name: Authorization
+      in: header
+      scheme: '#/components/schemas/Actor'
+#      description: JWT token for authentication

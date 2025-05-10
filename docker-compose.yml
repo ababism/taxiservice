@@ -1,0 +1,99 @@
+version: '3.9'
+
+services:
+  musicsnap-svc:
+    build:
+      context: './'
+      dockerfile: 'musicsnap.Dockerfile'
+    image: 'courses-svc:latest'
+    ports:
+      - "8080:8080"
+    depends_on:
+      musicsnap_db:
+        condition: service_healthy
+    environment:
+      - DB_PASSWORD=${MUSICSNAP_POSTGRES_PASSWORD}
+
+  redis_musicsnap:
+    image: redis:7.2
+    container_name: test_redis
+    restart: always
+    ports:
+      -  "6376:6379"
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_DATABASES=1
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+    networks:
+      - musicsnap
+
+
+  musicsnap_cache:
+    container_name: musicsnap-cache
+    image: redis:alpine
+
+  musicsnap_db:
+    restart: always
+    image: postgres:latest
+    ports:
+      - "5436:5432"
+    environment:
+      - POSTGRES_DB=${MUSICSNAP_POSTGRES_NAME}
+      - POSTGRES_HOST=${MUSICSNAP_POSTGRES_HOST}
+      - POSTGRES_USER=${MUSICSNAP_POSTGRES_USER}
+      - POSTGRES_PASSWORD=${MUSICSNAP_POSTGRES_PASSWORD}
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d musicsnap_db" ]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+
+networks:
+  musicsnap:
+    name: musicsnap
+
+#volumes:
+#    musicsnap_data:
+#    musicsnap_config:
+
+#  zookeeper:
+#    image: wurstmeister/zookeeper:latest
+#    ports:
+#      - "2181:2181"
+#    environment:
+#      ZOOKEEPER_CLIENT_PORT: 2181
+#  kafka:
+#    depends_on:
+#      - zookeeper
+#    container_name: kafka
+#    image: wurstmeister/kafka:latest
+#    ports:
+#      - "9094:9094"
+#    environment:
+#      KAFKA_BROKER_ID: 1
+#      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+#      KAFKA_LISTENERS: INTERNAL://0.0.0.0:9092,OUTSIDE://0.0.0.0:9094
+#      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9092,OUTSIDE://localhost:9094
+#      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,OUTSIDE:PLAINTEXT
+#      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+#  init-kafka:
+#    image: confluentinc/cp-kafka:latest
+#    depends_on:
+#      - kafka
+#    entrypoint: [ '/bin/sh', '-c' ]
+#    command: |
+#      "
+#      kafka-topics.sh --bootstrap-server kafka:9092 --list
+#
+#      echo -e 'Creating kafka topics'
+#      kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic outbound --replication-factor 1 --partitions 1
+#      kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic inbound --replication-factor 1 --partitions 1
+#
+#      echo -e 'Successfully created the following topics:'
+#      kafka-topics.sh --bootstrap-server kafka:9092 --list
+#      "
+
